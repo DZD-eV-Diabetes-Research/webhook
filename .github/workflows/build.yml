@@ -21,3 +21,10 @@ jobs:
           context: .
           push: true
           tags: dzdde/webhook:latest
+
+      - uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_DZD_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DZD_PASSWORD }}
+          repository: dzdde/webhook
+          readme-filepath: ./README.md

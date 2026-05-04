@@ -1,17 +1,21 @@
-# webhook
+# dzdde/webhook
 
-A minimal Docker image that combines [adnanh/webhook](https://github.com/adnanh/webhook) with the [Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/) (including the Compose plugin). Intended for self-hosted setups where a webhook receiver needs to trigger Docker operations — for example, redeploying a container when a new image is pushed to a registry.
+[![Docker Hub](https://img.shields.io/docker/v/dzdde/webhook?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/dzdde/webhook)
 
-The image is built and pushed to `ghcr.io/dzd-ev-diabetes-research/webhook:latest` via GitHub Actions on every push to `main`.
+A minimal Docker image combining [adnanh/webhook](https://github.com/adnanh/webhook) with the [Docker CLI](https://docs.docker.com/engine/reference/commandline/cli/) (including the Compose plugin).
+
+Built for self-hosted setups where a webhook receiver needs to trigger Docker operations — for example, automatically redeploying a container when a new image is pushed to a registry.
+
+```
+docker pull dzdde/webhook:latest
+```
 
 ## Usage
-
-Mount the Docker socket and a hook script, then generate `hooks.json` and start the webhook server:
 
 ```yaml
 services:
   webhook:
-    image: ghcr.io/dzd-ev-diabetes-research/webhook:latest
+    image: dzdde/webhook:latest
     entrypoint: ["/bin/sh", "-c"]
     command: >
       chmod +x /scripts/update.sh &&
@@ -28,17 +32,27 @@ services:
       COMPOSE_PROJECT_NAME: "your-project"
 ```
 
-The webhook will be reachable at `POST /hooks/update-<WEBHOOK_TOKEN>`. Requests where `push_data.tag` does not match `WATCH_TAG` are silently ignored.
+The webhook endpoint is: `POST /hooks/update-<WEBHOOK_TOKEN>`
 
-A minimal `update.sh`:
+Requests where `push_data.tag` does not match `WATCH_TAG` are ignored — useful for watching a specific tag (e.g. `dev` or `beta`) on a multi-tag repository.
+
+### update.sh
 
 ```bash
 #!/bin/sh
 set -e
-docker compose -f /compose/docker-compose.yml pull
+docker compose -f /compose/docker-compose.yml pull <service> <service>
 docker compose -f /compose/docker-compose.yml up -d --no-deps --force-recreate <service> <service>
 ```
 
+### Environment variables
+
+| Variable | Description |
+|---|---|
+| `WEBHOOK_TOKEN` | Secret token included in the webhook URL path |
+| `WATCH_TAG` | Only trigger on pushes of this image tag |
+| `COMPOSE_PROJECT_NAME` | Must match the Compose project name on the host |
+
 ## Updating
 
-This image is not rebuilt automatically. To pick up upstream changes from either base image, update this repository — the pipeline will rebuild and push.
+This image is not rebuilt automatically. To pick up upstream changes, push to `main` — the pipeline will rebuild and push to Docker Hub.
